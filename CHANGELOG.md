@@ -25,3 +25,4 @@ Project development history for AI Toolkit
 - 2024-10-15 10:00:00: Start Python LLM comparator implementation
 - 2024-10-22 13:45:00: Add async support for multiple models
 - 2024-10-28 11:20:00: Implement token counting and cost calculation
+- 2024-11-05 15:00:00: Add OpenAI and Anthropic API integration
