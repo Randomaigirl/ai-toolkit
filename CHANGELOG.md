@@ -15,3 +15,4 @@ Project development history for AI Toolkit
 - 2024-12-09 16:20:00: Add Google Gemini and DeepSeek support
 - 2024-12-16 13:00:00: Start frontend development with React
 - 2024-12-23 11:30:00: Build TypeScript chat component
+- 2024-12-28 15:45:00: Add streaming response support
