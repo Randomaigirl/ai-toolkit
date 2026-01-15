@@ -1,0 +1,20 @@
+# AI Toolkit - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Async HTTP client
+aiohttp>=3.9.0
+
+# For actual API implementations (optional)
+openai>=1.12.0
+anthropic>=0.18.0
+google-generativeai>=0.3.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+
+# Optional: For enhanced features
+tiktoken>=0.5.2  # Token counting
+rich>=13.7.0     # Beautiful CLI output
+fastapi>=0.109.0 # If you want to build APIs
+uvicorn>=0.27.0  # ASGI server

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Arena - Multi-LLM Comparison Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-card: #13172e;
+            --accent-cyan: #00fff5;
+            --accent-pink: #ff006e;
+            --accent-purple: #8338ec;
+            --text-primary: #e0e6f0;
+            --text-secondary: #8892b0;
+            --success: #00ff88;
+            --warning: #ffaa00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.15;
+            background: 
+                radial-gradient(circle at 20% 50%, var(--accent-cyan) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, var(--accent-pink) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, var(--accent-purple) 0%, transparent 50%);
+            filter: blur(100px);
+            animation: bgShift 20s ease infinite;
+        }
+
+        @keyframes bgShift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(50px, -30px) scale(1.1); }
+            66% { transform: translate(-30px, 50px) scale(0.9); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            animation: titleGlow 3s ease-in-out infinite;
+            letter-spacing: -2px;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .input-section {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 40px 0;
+            border: 2px solid rgba(0, 255, 245, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .input-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            animation: scanline 2s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(0, 255, 245, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 245, 0.3);
+        }
+
+        .model-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .model-chip {
+            background: rgba(0, 255, 245, 0.1);
+            border: 2px solid rgba(0, 255, 245, 0.3);
+            border-radius: 12px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .model-chip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 245, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .model-chip:hover::before {
+            left: 100%;
+        }
+
+        .model-chip:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 10px 30px rgba(0, 255, 245, 0.3);
+        }
+
+        .model-chip.selected {
+            background: linear-gradient(135deg, rgba(0, 255, 245, 0.3), rgba(131, 56, 236, 0.3));
+            border-color: var(--accent-cyan);
+            transform: scale(1.05);
+        }
+
+        .model-chip .model-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--accent-cyan);
+        }
+
+        .model-chip .model-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .compare-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .compare-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .compare-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .compare-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 40px rgba(0, 255, 245, 0.5);
+        }
+
+        .compare-btn:active {
+            transform: scale(0.98);
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .result-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(0, 255, 245, 0.2);
+            position: relative;
+            overflow: hidden;
+            animation: cardSlideIn 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes cardSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink), var(--accent-purple));
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .model-badge {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(0, 255, 245, 0.2);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            margin-right: 5px;
+        }
+
+        .stat-value {
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .response-text {
+            color: var(--text-primary);
+            line-height: 1.8;
+            font-size: 1rem;
+            margin: 20px 0;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .loading-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            animation: loadingBounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes loadingBounce {
+            0%, 80%, 100% { 
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        footer a:hover {
+            color: var(--accent-pink);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <div class="container">
+        <header>
+            <h1>AI ARENA</h1>
+            <p class="subtitle">Compare Multiple LLMs Side-by-Side | Built by Revy (˃ᆺ˂) 💜</p>
+        </header>
+
+        <div class="input-section">
+            <h2 style="margin-bottom: 20px; color: var(--accent-cyan);">Enter Your Prompt</h2>
+            <textarea id="promptInput" placeholder="Ask anything... The same prompt will be sent to all selected models for comparison."></textarea>
+
+            <h3 style="margin: 30px 0 20px; color: var(--accent-cyan);">Select Models to Compare</h3>
+            <div class="model-selector">
+                <div class="model-chip" data-model="gpt4">
+                    <div class="model-name">GPT-4o</div>
+                    <div class="model-desc">OpenAI's flagship</div>
+                </div>
+                <div class="model-chip" data-model="claude">
+                    <div class="model-name">Claude Sonnet 4.5</div>
+                    <div class="model-desc">Anthropic's best</div>
+                </div>
+                <div class="model-chip" data-model="gemini">
+                    <div class="model-name">Gemini 2.0 Flash</div>
+                    <div class="model-desc">Google's latest</div>
+                </div>
+                <div class="model-chip" data-model="llama">
+                    <div class="model-name">Llama 3.3 70B</div>
+                    <div class="model-desc">Meta's open model</div>
+                </div>
+                <div class="model-chip" data-model="deepseek">
+                    <div class="model-name">DeepSeek V3</div>
+                    <div class="model-desc">Ultra efficient</div>
+                </div>
+                <div class="model-chip" data-model="mistral">
+                    <div class="model-name">Mistral Large</div>
+                    <div class="model-desc">European champion</div>
+                </div>
+            </div>
+
+            <button class="compare-btn" onclick="compareModels()">
+                <span style="position: relative; z-index: 1;">🔥 COMPARE MODELS 🔥</span>
+            </button>
+        </div>
+
+        <div id="results" class="results-grid"></div>
+
+        <footer>
+            <p>Built with 💜 by <a href="https://github.com/Randomaigirl" target="_blank">@Randomaigirl</a></p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">This is a demo interface. Connect to actual APIs for real comparisons.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Model selection
+        const modelChips = document.querySelectorAll('.model-chip');
+        const selectedModels = new Set();
+
+        modelChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                const model = chip.dataset.model;
+                if (selectedModels.has(model)) {
+                    selectedModels.delete(model);
+                    chip.classList.remove('selected');
+                } else {
+                    selectedModels.add(model);
+                    chip.classList.add('selected');
+                }
+            });
+        });
+
+        // Simulate API call and comparison
+        async function compareModels() {
+            const prompt = document.getElementById('promptInput').value;
+            const resultsDiv = document.getElementById('results');
+
+            if (!prompt.trim()) {
+                alert('Please enter a prompt!');
+                return;
+            }
+
+            if (selectedModels.size === 0) {
+                alert('Please select at least one model!');
+                return;
+            }
+
+            resultsDiv.innerHTML = '';
+
+            const modelResponses = {
+                'gpt4': {
+                    name: 'GPT-4o',
+                    response: `This is a simulated response from GPT-4o. In a production environment, this would call the OpenAI API with your prompt: "${prompt}". GPT-4o is known for its strong reasoning capabilities and broad knowledge base.`,
+                    tokens: Math.floor(Math.random() * 500) + 100,
+                    time: (Math.random() * 2 + 1).toFixed(2)
+                },
+                'claude': {
+                    name: 'Claude Sonnet 4.5',
+                    response: `This is a simulated response from Claude Sonnet 4.5. In production, this would connect to Anthropic's API. Claude excels at nuanced reasoning, coding, and maintaining context. Your prompt was: "${prompt}"`,
+                    tokens: Math.floor(Math.random() * 500) + 100,
+                    time: (Math.random() * 2 + 1).toFixed(2)
+                },
+                'gemini': {
+                    name: 'Gemini 2.0 Flash',
+                    response: `Simulated Gemini 2.0 Flash response. This model is optimized for speed while maintaining quality. In a real implementation, this would query Google's Gemini API with: "${prompt}"`,
+                    tokens: Math.floor(Math.random() * 500) + 100,
+                    time: (Math.random() * 2 + 1).toFixed(2)
+                },
+                'llama': {
+                    name: 'Llama 3.3 70B',
+                    response: `Simulated Llama 3.3 70B response. As an open-source model, Llama offers flexibility and local deployment options. Real implementation would use Meta's API or local inference for: "${prompt}"`,
+                    tokens: Math.floor(Math.random() * 500) + 100,
+                    time: (Math.random() * 2 + 1).toFixed(2)
+                },
+                'deepseek': {
+                    name: 'DeepSeek V3',
+                    response: `Simulated DeepSeek V3 response. Known for exceptional efficiency and reasoning capabilities. Production version would call DeepSeek's API with your query: "${prompt}"`,
+                    tokens: Math.floor(Math.random() * 500) + 100,
+                    time: (Math.random() * 2 + 1).toFixed(2)
+                },
+                'mistral': {
+                    name: 'Mistral Large',
+                    response: `Simulated Mistral Large response. European AI excellence with strong multilingual capabilities. Real implementation connects to Mistral AI's API for: "${prompt}"`,
+                    tokens: Math.floor(Math.random() * 500) + 100,
+                    time: (Math.random() * 2 + 1).toFixed(2)
+                }
+            };
+
+            let delay = 0;
+            for (const model of selectedModels) {
+                setTimeout(() => {
+                    createResultCard(modelResponses[model]);
+                }, delay);
+                delay += 200;
+            }
+        }
+
+        function createResultCard(data) {
+            const resultsDiv = document.getElementById('results');
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.style.animationDelay = '0s';
+            
+            card.innerHTML = `
+                <div class="result-header">
+                    <div class="model-badge">${data.name}</div>
+                </div>
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-label">Tokens:</span>
+                        <span class="stat-value">${data.tokens}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Time:</span>
+                        <span class="stat-value">${data.time}s</span>
+                    </div>
+                </div>
+                <div class="response-text">${data.response}</div>
+            `;
+            
+            resultsDiv.appendChild(card);
+        }
+    </script>
+</body>
+</html>
